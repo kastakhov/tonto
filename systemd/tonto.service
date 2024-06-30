@@ -1,0 +1,12 @@
+[Unit]
+Description=Tonto Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=tonto
+Group=tonto
+ExecStart=/opt/tonto/tonto.sh
+
+[Install]
+WantedBy=multi-user.target

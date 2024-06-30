@@ -1,4 +1,4 @@
-tonto, silly IP monitoring
+Tonto, silly IP monitoring
 ==========================
 
 The basic idea of tonto is: you write the list of IP numbers you want to monitor,
@@ -12,25 +12,66 @@ not respond it will send and alert (to EMAIL variable), it will also notify when
 host is responsive again.  It will also keep a log file with this information and
 response times (RTT) from ping.
 
-Addionally, if RRDTOOL is available, it will save all this information (RTT and
+Additionally, if RRDTOOL is available, it will save all this information (RTT and
 packet loss) in an RRD database file, and create a pretty graph every 5 minutes.
 
 How do I install tonto?
 -----------------------
 
-Just copy tonto.sh and tonto.config.sh somewhere in your filesyste, for instance
-/usr/local/tonto and setup a cron job to run it every minute. See tonto.cron.sample
+1. Make sure you install all dependencies:
 
-Also, install RRDTOOL if you want to create the rrdtool graphs.
+    ```shell
+    apt-get update
+    apt-get install iputils-ping rrdtool git mailutils
+    ```
+
+2. Clone GIT repository
+
+    ```shell
+    cd /opt
+    git clone https://github.com/kastakhov/tonto.git
+    ```
+
+3. Create user for tonto service:
+
+    ```shell
+    addgroup --system tonto
+    adduser --system --shell /usr/sbin/nologin --home /opt/tonto --group tonto --no-create-home tonto
+    chown -R tonto:tonto /opt/tonto
+    ```
+
+4. Create config file from sample:
+
+    ```shell
+    cp /opt/tonto/tonto.config.sh.sample /opt/tonto/tonto.config.sh
+    ```
+
+5. Copy crontab file or systemd units to run service every one minute
+
+    5.1 crontab
+
+    ```shell
+    cp /opt/tonto/tonto.cron.sample /etc/cron.d/tonto
+    ```
+
+    5.2 systemd:
+
+    ```shell
+    cp /opt/tonto/systemd/* /usr/lib/systemd/system/
+    systemctl enable --now tonto.timer
+    ```
 
 How do I configure tonto?
 -------------------------
 
-You can configure all options in tonto.sh itself, but you better do it in
-tonto.config.sh, you basically need to set the array HOSTS with the lists of hosts
+Use tonto.config.sh to configure all options, you basically need to set the dict HOSTS with the lists of hosts and its names
 you want to monitor, and the EMAIL address you want to get the alerts.
 
-    HOSTS=( server1 server2 example.com example.org )
-    EMAIL=bob@example.com
+```shell
+HOSTS=(["192.168.0.1"]="192.168.0.1")
+HOSTS+=(["192.168.0.2"]="home")
+HOSTS+=(["192.168.0.3"]="site")
+EMAIL_TO=bob@example.com
+```
 
 Other options available include ping deadline, ping packet count, etc.

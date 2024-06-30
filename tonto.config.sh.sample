@@ -1,4 +1,15 @@
-HOSTS=( 192.168.0.1 192.168.0.2 192.168.254 example.com example.org )
-EMAIL="alice@example.com"
+declare -A HOSTS
+# HOSTS=(["192.168.0.1"]="192.168.0.1")
+# HOSTS+=(["192.168.0.2"]="home")
+# HOSTS+=(["192.168.0.3"]="site")
+
 PING_COUNT=2
 PING_DEADLINE=3
+
+# Tools path
+PING=`which ping` 2> /dev/null
+RRDTOOL=`which rrdtool` 2> /dev/null
+
+# EMAIL Notification
+EMAIL_TO=
+EMAIL_SUB="TONTO NOTIFICATION:"

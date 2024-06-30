@@ -1,0 +1,9 @@
+[Unit]
+Description=Tonto Service Timer
+
+[Timer]
+Persistent=true
+OnCalendar=*-*-* *:*:00
+
+[Install]
+WantedBy=multi-user.target

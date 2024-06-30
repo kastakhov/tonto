@@ -1,21 +1,19 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 #
 # silly ip monitoring + rrd
 #
 
-LOG=/var/log/tonto
-WWW=/var/www/html/tonto
+LOG=`dirname $0`/log
+WWW=`dirname $0`/tonto
 HEADER=`dirname $0`/header.html
 FOOTER=`dirname $0`/footer.html
-HOSTS=( server1 server2 printer1 printer2 example.com example.org )
-EMAIL="root@example.com"
-PING=""
-PING_COUNT=2
-PING_DEADLINE=3
-RRDTOOL=""
 
-# read IP numbers from tonto.config.sh
+if [ ! -f `dirname $0`/tonto.config.sh ]; then
+	echo "Please create tonto.config.sh from tonto.config.sh.sample"
+	exit 1
+fi
+
 source `dirname $0`/tonto.config.sh
 mkdir -p $LOG
 mkdir -p $WWW
@@ -34,18 +32,9 @@ if [ $LOG/LASTTIME -ot $LOG/5MINUTES ]; then
 	HTML="<small>Last updated `date`</small>"
 fi
 
-# use ping?!
-if [ -z $PING ]; then
-	PING=`which ping` 2> /dev/null
-fi
-
-# use rrdtool?
-if [ -z $RRDTOOL]; then
-	RRDTOOL=`which rrdtool` 2> /dev/null
-fi
-
 # loop
-for ip in "${HOSTS[@]}"; do
+for ip in "${!HOSTS[@]}"; do
+	ip_desc=${HOSTS[$ip]}
 
 	# create RRD file
 	if [ ! -f $LOG/$ip.rrd ] && [ -n $RRDTOOL ] ; then
@@ -57,25 +46,25 @@ for ip in "${HOSTS[@]}"; do
 
 	date=`date +%Y%m%d%H%M%S`
 	#rtt=`$PING -c $PING_COUNT -w $PING_DEADLINE $ip | tail -1| awk -F '/' '{print $5}'`
-	lines=`$PING -c $PING_COUNT -w $PING_DEADLINE $ip|grep -E 'packet loss|rtt'`
-	rc=$?
-	rtt=`echo $lines|cut -f 5 -d '/'`
-	loss=`echo $lines|cut -f 6 -d ' '|tr -d '%'`
+	lines=`$PING -c $PING_COUNT -w $PING_DEADLINE $ip | grep -E 'packet loss|rtt'`
+	rtt=`echo $lines | grep rtt | cut -f 5 -d '/'`
+	loss=`echo $lines | grep loss | cut -f 6 -d ' ' | tr -d '%'`
 	#echo "$ip RC = $rc RT = $rtt PL = $loss"
-	if [ $rc = 0 ]; then
-		rc_str="OK"
-		if [ -f $LOG/$ip.down ]; then
-			echo "$ip OK" | mail -s "$ip OK" "$EMAIL"
-			rm $LOG/$ip.down
-		fi
-		touch $LOG/$ip.up
-	else
+	if [ -z $rtt ]; then
+		rtt=0
 		rc_str="FAILED"
 		if [ -f $LOG/$ip.up ]; then
-			echo "$ip DOWN" | mail -s "$ip DOWN" "$EMAIL"
+			echo "$ip DOWN" | mail -s "${EMAIL_SUB} ${ip_desc}" "$EMAIL_TO"
 			rm $LOG/$ip.up
 		fi
 		touch $LOG/$ip.down
+	else
+		rc_str="OK"
+		if [ -f $LOG/$ip.down ]; then
+			echo "$ip UP" | mail -s "${EMAIL_SUB} ${ip_desc}" "$EMAIL_TO"
+			rm $LOG/$ip.down
+		fi
+		touch $LOG/$ip.up
 	fi
 
 	# update RRD file
@@ -103,7 +92,7 @@ for ip in "${HOSTS[@]}"; do
 		COMMENT:"pkt loss\:" \
 		AREA:PLNone#FFFFFF:"0%":STACK AREA:PL10#FFFF00:"1-10%":STACK AREA:PL25#FFCC00:"10-25%":STACK\
 		AREA:PL50#FF8000:"25-50%":STACK AREA:PL100#FF0000:"50-100%":STACK
-		HTML="${HTML}<h2>$ip</h2><img src=\"$ip.png\"/><hr>"
+		HTML="${HTML}<h2>$ip_desc</h2><img src=\"$ip.png\"/><hr>"
 	fi
 
 	# log

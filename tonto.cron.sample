@@ -1,1 +1,1 @@
-*/1 * * * *	alice	/alice-scripts/tonto.sh
+* * * * *	tonto /opt/tonto/tonto.sh
